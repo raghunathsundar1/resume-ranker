@@ -4,7 +4,5 @@ pyarrow
 rank-bm25
 numpy
 pandas
-gradio==4.44.1
 audioop-lts
-pydub>=0.25.1
 tqdm
