@@ -1,101 +1,101 @@
 candidate_id,rank,score,reasoning
-CAND_0030953,1,0.932941,"7.8yr total, 5.7yr at product companies — GitHub activity score 21.0/10. aligns with the JD's NLP/IR focus."
-CAND_0073883,2,0.925737,Candidate has 5.2yr shipping production ML at product firms; GitHub activity score 65.6/10.
-CAND_0049978,3,0.923638,"6.6yr career (6.5yr at product companies); shows 5 core JD concept(s): deep_learning, ml_production, nlp, ranking_ir, recommendation. no major red flags noted"
-CAND_0073007,4,0.921929,"5.8yr total, 5.8yr at product companies — 5.8yr at product companies. directly addresses the JD's search/ranking requirement."
-CAND_0070525,5,0.921642,5.4yr career (5.3yr at product companies); assessment avg 63/100. no major red flags noted
-CAND_0043860,6,0.920822,"Candidate has 6.1yr shipping production ML at product firms; top skills include pgvector, Feature Engineering, Object Detection."
-CAND_0004402,7,0.919524,"6.0yr total, 5.9yr at product companies — current role: AI Research Engineer. directly addresses the JD's search/ranking requirement."
-CAND_0069638,8,0.918174,"6.2yr total, 6.1yr at product companies — current role: Computer Vision Engineer. fits the JD's recommendation-system scope."
-CAND_0015493,9,0.917769,"Data Scientist with 6.4yr exp and 6.2yr at product companies; top skills include gRPC, Image Classification, scikit-learn."
-CAND_0043829,10,0.916398,Candidate has 4.8yr shipping production ML at product firms; 4.8yr at product companies.
-CAND_0047542,11,0.916301,5.0yr exp with 5.0yr at product firms; GitHub activity score 15.4/10. no major red flags noted
-CAND_0098952,12,0.914957,"AI Research Engineer (5.5yr exp); top skills include Airflow, Recommendation Systems, Statistical Modeling but no major red flags noted."
-CAND_0015065,13,0.913227,AI Research Engineer (3.9yr exp); assessment avg 65/100 but notice period 90d is long.
-CAND_0054829,14,0.913160,Mixed profile: current role: Computer Vision Engineer; however no major red flags noted. Borderline for this JD.
-CAND_0099751,15,0.912933,Mixed profile: assessment avg 76/100; however notice period 120d is long. Borderline for this JD.
-CAND_0068932,16,0.912414,"ML Engineer (5.2yr exp); top skills include Marketing, JavaScript, Agile but no major red flags noted."
-CAND_0010541,17,0.912243,Mixed profile: 6.2yr at product companies; however no major red flags noted. Borderline for this JD.
-CAND_0010149,18,0.911249,"Mixed profile: top skills include Computer Vision, Diffusion Models, Milvus; however notice period 90d is long. Borderline for this JD."
-CAND_0082489,19,0.910259,Mixed profile: current role: ML Engineer; however notice period 90d is long. Borderline for this JD.
-CAND_0088385,20,0.910209,Computer Vision Engineer (7.0yr exp); current role: Computer Vision Engineer but notice period 90d is long.
-CAND_0059795,21,0.910113,Mixed profile: GitHub activity score 56.6/10; however no major red flags noted. Borderline for this JD.
-CAND_0080372,22,0.909959,"Mixed profile: top skills include Feature Engineering, NLP, PostgreSQL; however notice period 90d is long. Borderline for this JD."
-CAND_0065277,23,0.909687,"Computer Vision Engineer (6.3yr exp); top skills include YOLO, Diffusion Models, Statistical Modeling but no major red flags noted."
-CAND_0011327,24,0.909653,AI Research Engineer (6.3yr exp); current role: AI Research Engineer but no major red flags noted.
-CAND_0014909,25,0.909580,4.8yr exp with 4.8yr at product firms; GitHub activity score 67.6/10. notice period 120d is long
-CAND_0018013,26,0.908832,"Mixed profile: top skills include Illustrator, Computer Vision, Vector Search; however notice period 90d is long. Borderline for this JD."
-CAND_0060835,27,0.908584,"Mixed profile: shows 5 core JD concept(s): deep_learning, ml_production, nlp, ranking_ir, recommendation; however notice period 90d is long. Borderline for this JD."
-CAND_0067535,28,0.907364,Mixed profile: 5.2yr at product companies; however no major red flags noted. Borderline for this JD.
-CAND_0060257,29,0.906075,AI Specialist (5.8yr exp); assessment avg 52/100 but no major red flags noted.
-CAND_0074621,30,0.905947,5.2yr exp with 5.2yr at product firms; assessment avg 87/100. notice period 90d is long
-CAND_0003557,31,0.905844,ML Engineer (6.8yr exp); GitHub activity score 22.5/10 but notice period 90d is long.
-CAND_0061244,32,0.905341,Mixed profile: current role: Computer Vision Engineer; however low recruiter response rate. Borderline for this JD.
-CAND_0057529,33,0.904914,Mixed profile: GitHub activity score 18.7/10; however no major red flags noted. Borderline for this JD.
-CAND_0058287,34,0.904892,5.5yr exp with 5.4yr at product firms; 5.4yr at product companies. notice period 90d is long
-CAND_0051486,35,0.904863,Mixed profile: current role: AI Specialist; however notice period 120d is long. Borderline for this JD.
-CAND_0012837,36,0.903685,"Junior ML Engineer (6.4yr exp); top skills include Forecasting, Vector Search, MLOps but no major red flags noted."
-CAND_0058412,37,0.903680,6.6yr exp with 4.9yr at product firms; assessment avg 69/100. no major red flags noted
-CAND_0053527,38,0.903580,Mixed profile: current role: Junior ML Engineer; however notice period 90d is long. Borderline for this JD.
-CAND_0096104,39,0.903303,AI Specialist (7.0yr exp); GitHub activity score 72.0/10 but no major red flags noted.
-CAND_0060340,40,0.903216,6.1yr exp with 6.0yr at product firms; current role: Computer Vision Engineer. no major red flags noted
-CAND_0004972,41,0.903166,ML Engineer (6.0yr exp); current role: ML Engineer but notice period 90d is long.
-CAND_0032179,42,0.903013,Computer Vision Engineer (6.4yr exp); current role: Computer Vision Engineer but location (Sydney) outside India preference.
-CAND_0001930,43,0.902648,6.9yr exp with 6.8yr at product firms; GitHub activity score 76.3/10. notice period 120d is long
-CAND_0043958,44,0.902432,"AI Research Engineer (6.7yr exp); shows 5 core JD concept(s): deep_learning, ml_production, nlp, ranking_ir, recommendation but notice period 120d is long."
-CAND_0052195,45,0.902157,"6.3yr exp with 3.3yr at product firms; top skills include MLflow, Sentence Transformers, Webpack. no major red flags noted"
-CAND_0068012,46,0.901469,"5.7yr exp with 3.9yr at product firms; top skills include HTML, scikit-learn, Information Retrieval. notice period 120d is long"
-CAND_0018653,47,0.901275,6.5yr exp with 3.5yr at product firms; 3.5yr at product companies. notice period 90d is long
-CAND_0058426,48,0.901198,Data Scientist (6.5yr exp); GitHub activity score 39.0/10 but no major red flags noted.
-CAND_0048558,49,0.901039,"Mixed profile: shows 5 core JD concept(s): deep_learning, ml_production, nlp, ranking_ir, recommendation; however no major red flags noted. Borderline for this JD."
-CAND_0014683,50,0.900924,Mixed profile: 5.5yr at product companies; however notice period 120d is long. Borderline for this JD.
-CAND_0049217,51,0.900042,Possibly relevant (current role: Computer Vision Engineer) but notice period 90d is long limits confidence.
-CAND_0031397,52,0.899544,6.6yr exp with 4.1yr at product firms; assessment avg 65/100. notice period 90d is long
-CAND_0003609,53,0.898894,6.1yr exp with 6.0yr at product firms; assessment avg 74/100. no major red flags noted
-CAND_0033987,54,0.898677,"6.8yr exp with 6.8yr at product firms; shows 5 core JD concept(s): deep_learning, ml_production, nlp, ranking_ir, recommendation. notice period 90d is long"
-CAND_0032089,55,0.898222,6.6yr exp with 4.3yr at product firms; 4.3yr at product companies. no major red flags noted
-CAND_0006833,56,0.898047,"Possibly relevant (shows 5 core JD concept(s): deep_learning, ml_production, nlp, ranking_ir, recommendation) but notice period 120d is long limits confidence."
-CAND_0069248,57,0.897141,AI Research Engineer — some signal (assessment avg 71/100) offset by notice period 120d is long. Rank ~57.
-CAND_0072091,58,0.896790,ML Engineer — some signal (assessment avg 63/100) offset by no major red flags noted. Rank ~58.
-CAND_0026362,59,0.896341,"Possibly relevant (shows 5 core JD concept(s): deep_learning, ml_production, nlp, ranking_ir, recommendation) but no major red flags noted limits confidence."
-CAND_0052744,60,0.896197,4.9yr exp with 3.6yr at product firms; assessment avg 66/100. notice period 90d is long
-CAND_0069771,61,0.895763,Possibly relevant (current role: Junior ML Engineer) but no major red flags noted limits confidence.
-CAND_0001302,62,0.895434,Possibly relevant (current role: Computer Vision Engineer) but location (Sydney) outside India preference limits confidence.
-CAND_0082291,63,0.894878,Possibly relevant (4.3yr at product companies) but notice period 90d is long limits confidence.
-CAND_0077956,64,0.893107,Computer Vision Engineer — some signal (current role: Computer Vision Engineer) offset by notice period 120d is long. Rank ~64.
-CAND_0056262,65,0.891676,"Possibly relevant (top skills include Fine-tuning LLMs, Semantic Search, QLoRA) but notice period 90d is long limits confidence."
-CAND_0099269,66,0.891253,5.5yr exp with 3.3yr at product firms; 3.3yr at product companies. notice period 120d is long
-CAND_0011125,67,0.890795,Possibly relevant (6.6yr at product companies) but notice period 120d is long limits confidence.
-CAND_0062772,68,0.890750,"Senior Software Engineer (ML) — some signal (shows 5 core JD concept(s): deep_learning, ml_production, nlp, ranking_ir, recommendation) offset by notice period 90d is long. Rank ~68."
-CAND_0059017,69,0.890357,Possibly relevant (current role: AI Research Engineer) but notice period 90d is long limits confidence.
-CAND_0061479,70,0.890036,"ML Engineer — some signal (top skills include Speech Recognition, LlamaIndex, MLOps) offset by notice period 120d is long. Rank ~70."
-CAND_0043676,71,0.890007,Senior Software Engineer (ML) — some signal (assessment avg 60/100) offset by no major red flags noted. Rank ~71.
-CAND_0081321,72,0.889914,5.3yr exp with 5.2yr at product firms; 5.2yr at product companies. notice period 120d is long
-CAND_0035764,73,0.889514,"6.8yr exp with 5.4yr at product firms; shows 5 core JD concept(s): deep_learning, ml_production, nlp, ranking_ir, recommendation. notice period 90d is long"
-CAND_0020991,74,0.889376,4.9yr exp with 2.5yr at product firms; assessment avg 64/100. notice period 120d is long
-CAND_0049615,75,0.889371,ML Engineer — some signal (current role: ML Engineer) offset by low recruiter response rate. Rank ~75.
-CAND_0067717,76,0.889287,Possibly relevant (3.9yr at product companies) but no major red flags noted limits confidence.
-CAND_0000273,77,0.889198,"Possibly relevant (top skills include TTS, Forecasting, Spring Boot) but no major red flags noted limits confidence."
-CAND_0012888,78,0.888830,Junior ML Engineer — some signal (GitHub activity score 46.6/10) offset by no major red flags noted. Rank ~78.
-CAND_0048166,79,0.888377,"ML Engineer — some signal (shows 5 core JD concept(s): deep_learning, ml_production, nlp, ranking_ir, recommendation) offset by location (Berlin) outside India preference. Rank ~79."
-CAND_0017648,80,0.888357,AI Specialist — some signal (GitHub activity score 47.2/10) offset by notice period 120d is long. Rank ~80.
-CAND_0008049,81,0.887979,6.3yr exp with 3.8yr at product firms; assessment avg 66/100. no major red flags noted
-CAND_0032271,82,0.887690,"AI Research Engineer — some signal (top skills include LangChain, PEFT, Redux) offset by notice period 120d is long. Rank ~82."
-CAND_0022852,83,0.887652,AI Research Engineer — some signal (current role: AI Research Engineer) offset by notice period 120d is long. Rank ~83.
-CAND_0036484,84,0.887084,"5.7yr exp with 5.7yr at product firms; top skills include Statistical Modeling, Image Classification, Qdrant. notice period 90d is long"
-CAND_0055139,85,0.887057,6.9yr exp with 5.1yr at product firms; current role: ML Engineer. low recruiter response rate
-CAND_0064326,86,0.887018,7.6yr exp with 7.6yr at product firms; GitHub activity score 61.4/10. no major red flags noted
-CAND_0053934,87,0.885872,"Possibly relevant (shows 5 core JD concept(s): deep_learning, ml_production, nlp, ranking_ir, recommendation) but notice period 120d is long limits confidence."
-CAND_0034148,88,0.885382,Possibly relevant (4.2yr at product companies) but notice period 120d is long limits confidence.
-CAND_0024147,89,0.885109,"5.9yr exp with 2.5yr at product firms; top skills include ASR, Qdrant, Kubeflow. no major red flags noted"
-CAND_0046924,90,0.884802,6.3yr exp with 4.2yr at product firms; 4.2yr at product companies. notice period 120d is long
-CAND_0008295,91,0.884415,6.5yr exp with 4.2yr at product firms; assessment avg 59/100. no major red flags noted
-CAND_0003506,92,0.883965,5.9yr exp with 3.1yr at product firms; current role: Computer Vision Engineer. notice period 90d is long
-CAND_0038099,93,0.883910,"Possibly relevant (top skills include BM25, PEFT, OpenCV) but notice period 90d is long limits confidence."
-CAND_0018925,94,0.883832,"5.8yr exp with 5.7yr at product firms; shows 5 core JD concept(s): deep_learning, ml_production, nlp, ranking_ir, recommendation. notice period 90d is long"
-CAND_0087006,95,0.883515,Senior Software Engineer (ML) — some signal (3.2yr at product companies) offset by no major red flags noted. Rank ~95.
-CAND_0071205,96,0.883134,"Possibly relevant (top skills include Reinforcement Learning, MLOps, Qdrant) but location (New York) outside India preference limits confidence."
-CAND_0018888,97,0.883072,AI Research Engineer — some signal (GitHub activity score 51.4/10) offset by no major red flags noted. Rank ~97.
-CAND_0088049,98,0.882903,5.9yr exp with 3.5yr at product firms; assessment avg 67/100. no major red flags noted
-CAND_0090155,99,0.882111,ML Engineer — some signal (GitHub activity score 75.9/10) offset by notice period 90d is long. Rank ~99.
-CAND_0078262,100,0.881776,"Possibly relevant (top skills include SQL, FAISS, Computer Vision) but no major red flags noted limits confidence."
+CAND_0071974,1,0.960226,Candidate has 7.7yr shipping production ML at product firms; GitHub activity score 82.8/10.
+CAND_0077337,2,0.958893,"Strong product-company background (6.9yr); top skills include GANs, Semantic Search, QLoRA. relevant to the JD's product-company bias."
+CAND_0030031,3,0.958240,"Candidate has 5.6yr shipping production ML at product firms; shows 5 core JD concept(s): deep_learning, ml_production, nlp, ranking_ir, recommendation."
+CAND_0002025,4,0.954458,"5.9yr total, 5.8yr at product companies — current role: Senior AI Engineer. directly addresses the JD's search/ranking requirement."
+CAND_0010257,5,0.953789,6.5yr career (6.4yr at product companies); current role: Senior Data Scientist. notice period 120d is long
+CAND_0091909,6,0.950473,Strong product-company background (6.8yr); GitHub activity score 49.7/10. directly addresses the JD's search/ranking requirement.
+CAND_0052682,7,0.948593,NLP Engineer with 6.6yr exp and 6.5yr at product companies; GitHub activity score 72.4/10.
+CAND_0061339,8,0.947283,4.2yr career (4.1yr at product companies); GitHub activity score 85.7/10. notice period 90d is long
+CAND_0078002,9,0.941627,"Machine Learning Engineer with 6.3yr exp and 3.7yr at product companies; top skills include Statistical Modeling, pgvector, Flask."
+CAND_0009024,10,0.940864,Search Engineer with 5.2yr exp and 5.1yr at product companies; 5.1yr at product companies.
+CAND_0050876,11,0.940153,Applied ML Engineer (6.0yr exp); assessment avg 66/100 but notice period 90d is long.
+CAND_0081053,12,0.938427,5.4yr exp with 5.3yr at product firms; current role: NLP Engineer. notice period 90d is long
+CAND_0089552,13,0.937032,6.0yr exp with 5.9yr at product firms; 5.9yr at product companies. notice period 120d is long
+CAND_0068811,14,0.937014,"Mixed profile: top skills include Data Science, Vector Search, Speech Recognition; however no major red flags noted. Borderline for this JD."
+CAND_0041669,15,0.936228,Recommendation Systems Engineer (8.0yr exp); current role: Recommendation Systems Engineer but no major red flags noted.
+CAND_0064904,16,0.934649,AI Engineer (4.9yr exp); GitHub activity score 59.0/10 but notice period 90d is long.
+CAND_0060054,17,0.934242,"6.4yr exp with 4.6yr at product firms; top skills include Diffusion Models, TensorFlow, Weaviate. no major red flags noted"
+CAND_0079284,18,0.933122,Mixed profile: current role: Machine Learning Engineer; however no major red flags noted. Borderline for this JD.
+CAND_0030953,19,0.932914,Mixed profile: assessment avg 68/100; however no major red flags noted. Borderline for this JD.
+CAND_0065786,20,0.930868,4.9yr exp with 4.8yr at product firms; assessment avg 53/100. no major red flags noted
+CAND_0009691,21,0.929430,6.2yr exp with 3.6yr at product firms; assessment avg 67/100. notice period 120d is long
+CAND_0095528,22,0.928435,5.3yr exp with 5.2yr at product firms; assessment avg 69/100. no major red flags noted
+CAND_0044855,23,0.926129,Senior Data Scientist (6.6yr exp); assessment avg 69/100 but no major red flags noted.
+CAND_0073883,24,0.925723,Mixed profile: 5.2yr at product companies; however notice period 90d is long. Borderline for this JD.
+CAND_0061655,25,0.924983,"4.6yr exp with 4.5yr at product firms; shows 5 core JD concept(s): deep_learning, ml_production, nlp, ranking_ir, recommendation. no major red flags noted"
+CAND_0066376,26,0.924818,Applied ML Engineer (5.7yr exp); current role: Applied ML Engineer but notice period 90d is long.
+CAND_0015528,27,0.924289,Applied ML Engineer (7.4yr exp); current role: Applied ML Engineer but no major red flags noted.
+CAND_0049978,28,0.923615,Mixed profile: GitHub activity score 69.4/10; however no major red flags noted. Borderline for this JD.
+CAND_0040117,29,0.922281,Mixed profile: 6.4yr at product companies; however no major red flags noted. Borderline for this JD.
+CAND_0018549,30,0.921950,Mixed profile: current role: Recommendation Systems Engineer; however no major red flags noted. Borderline for this JD.
+CAND_0073007,31,0.921906,5.8yr exp with 5.8yr at product firms; current role: AI Specialist. no major red flags noted
+CAND_0057563,32,0.921672,Mixed profile: GitHub activity score 22.8/10; however no major red flags noted. Borderline for this JD.
+CAND_0070525,33,0.921619,5.4yr exp with 5.3yr at product firms; current role: Senior Software Engineer (ML). no major red flags noted
+CAND_0047721,34,0.921583,7.0yr exp with 7.0yr at product firms; 7.0yr at product companies. notice period 90d is long
+CAND_0012957,35,0.921147,"Search Engineer (4.9yr exp); shows 5 core JD concept(s): deep_learning, ml_production, nlp, ranking_ir, recommendation but notice period 120d is long."
+CAND_0033861,36,0.920911,"8.0yr exp with 7.9yr at product firms; top skills include Reinforcement Learning, Weaviate, LoRA. low recruiter response rate"
+CAND_0043860,37,0.920799,"6.1yr exp with 6.1yr at product firms; shows 5 core JD concept(s): deep_learning, ml_production, nlp, ranking_ir, recommendation. no major red flags noted"
+CAND_0006557,38,0.920585,Mixed profile: 7.8yr at product companies; however notice period 120d is long. Borderline for this JD.
+CAND_0026532,39,0.920208,Mixed profile: 4.7yr at product companies; however notice period 90d is long. Borderline for this JD.
+CAND_0054123,40,0.919886,4.7yr exp with 4.6yr at product firms; current role: Applied ML Engineer. no major red flags noted
+CAND_0004402,41,0.919488,"6.0yr exp with 5.9yr at product firms; shows 5 core JD concept(s): deep_learning, ml_production, nlp, ranking_ir, recommendation. no major red flags noted"
+CAND_0058688,42,0.918951,AI Engineer (6.7yr exp); assessment avg 67/100 but location (Berlin) outside India preference.
+CAND_0015967,43,0.918336,Mixed profile: current role: Senior Software Engineer (ML); however no major red flags noted. Borderline for this JD.
+CAND_0083852,44,0.918187,Data Scientist (6.0yr exp); current role: Data Scientist but notice period 90d is long.
+CAND_0069638,45,0.918151,"Computer Vision Engineer (6.2yr exp); shows 5 core JD concept(s): deep_learning, ml_production, nlp, ranking_ir, recommendation but no major red flags noted."
+CAND_0015493,46,0.917756,6.4yr exp with 6.2yr at product firms; assessment avg 64/100. no major red flags noted
+CAND_0013613,47,0.917213,Machine Learning Engineer (4.7yr exp); current role: Machine Learning Engineer but location (Singapore) outside India preference.
+CAND_0099401,48,0.916733,Mixed profile: current role: NLP Engineer; however notice period 90d is long. Borderline for this JD.
+CAND_0043829,49,0.916381,AI Research Engineer (4.8yr exp); current role: AI Research Engineer but notice period 90d is long.
+CAND_0047542,50,0.916266,"Senior Software Engineer (ML) (5.0yr exp); top skills include Learning to Rank, REST APIs, MongoDB but no major red flags noted."
+CAND_0028422,51,0.916046,Possibly relevant (4.1yr at product companies) but notice period 90d is long limits confidence.
+CAND_0016659,52,0.915363,"4.4yr exp with 4.3yr at product firms; top skills include PowerPoint, TTS, Sentence Transformers. no major red flags noted"
+CAND_0098952,53,0.914942,AI Research Engineer — some signal (current role: AI Research Engineer) offset by no major red flags noted. Rank ~53.
+CAND_0080344,54,0.914840,Possibly relevant (current role: Senior Software Engineer (ML)) but notice period 90d is long limits confidence.
+CAND_0080051,55,0.914583,5.2yr exp with 5.2yr at product firms; assessment avg 68/100. no major red flags noted
+CAND_0065878,56,0.914198,"Possibly relevant (shows 5 core JD concept(s): deep_learning, ml_production, nlp, ranking_ir, recommendation) but no major red flags noted limits confidence."
+CAND_0072232,57,0.914071,"4.0yr exp with 3.9yr at product firms; shows 5 core JD concept(s): deep_learning, ml_production, nlp, ranking_ir, recommendation. notice period 90d is long"
+CAND_0074486,58,0.913789,"Possibly relevant (shows 5 core JD concept(s): deep_learning, ml_production, nlp, ranking_ir, recommendation) but no major red flags noted limits confidence."
+CAND_0024466,59,0.913659,5.2yr exp with 5.2yr at product firms; 5.2yr at product companies. location (Toronto) outside India preference
+CAND_0015065,60,0.913198,"AI Research Engineer — some signal (top skills include Embeddings, Data Science, LlamaIndex) offset by notice period 90d is long. Rank ~60."
+CAND_0054829,61,0.913138,Possibly relevant (3.8yr at product companies) but no major red flags noted limits confidence.
+CAND_0099751,62,0.912917,Possibly relevant (5.4yr at product companies) but notice period 120d is long limits confidence.
+CAND_0068932,63,0.912399,"5.2yr exp with 3.8yr at product firms; top skills include Marketing, JavaScript, Agile. no major red flags noted"
+CAND_0086151,64,0.912273,"Recommendation Systems Engineer — some signal (shows 5 core JD concept(s): deep_learning, ml_production, nlp, ranking_ir, recommendation) offset by notice period 120d is long. Rank ~64."
+CAND_0010541,65,0.912228,"Possibly relevant (top skills include Pinecone, GANs, Weaviate) but no major red flags noted limits confidence."
+CAND_0010149,66,0.911216,"Possibly relevant (shows 5 core JD concept(s): deep_learning, ml_production, nlp, ranking_ir, recommendation) but notice period 90d is long limits confidence."
+CAND_0082489,67,0.910253,"Possibly relevant (top skills include Kubeflow, Haystack, Weaviate) but notice period 90d is long limits confidence."
+CAND_0088385,68,0.910178,7.0yr exp with 6.9yr at product firms; GitHub activity score 36.7/10. notice period 90d is long
+CAND_0059795,69,0.910099,Senior Software Engineer (ML) — some signal (assessment avg 68/100) offset by no major red flags noted. Rank ~69.
+CAND_0080372,70,0.909938,"5.2yr exp with 5.1yr at product firms; shows 5 core JD concept(s): deep_learning, ml_production, nlp, ranking_ir, recommendation. notice period 90d is long"
+CAND_0065277,71,0.909665,"Possibly relevant (top skills include YOLO, Diffusion Models, Statistical Modeling) but no major red flags noted limits confidence."
+CAND_0011327,72,0.909632,Possibly relevant (current role: AI Research Engineer) but no major red flags noted limits confidence.
+CAND_0014909,73,0.909565,"Computer Vision Engineer — some signal (top skills include TTS, Python, pgvector) offset by notice period 120d is long. Rank ~73."
+CAND_0091745,74,0.909261,"Junior ML Engineer — some signal (shows 5 core JD concept(s): deep_learning, ml_production, nlp, ranking_ir, recommendation) offset by no major red flags noted. Rank ~74."
+CAND_0035879,75,0.909137,"Possibly relevant (top skills include CI/CD, Vue.js, Statistical Modeling) but notice period 120d is long limits confidence."
+CAND_0018013,76,0.908795,"Possibly relevant (shows 5 core JD concept(s): deep_learning, ml_production, nlp, ranking_ir, recommendation) but notice period 90d is long limits confidence."
+CAND_0060835,77,0.908562,"Senior Software Engineer (ML) — some signal (shows 5 core JD concept(s): deep_learning, ml_production, nlp, ranking_ir, recommendation) offset by notice period 90d is long. Rank ~77."
+CAND_0017178,78,0.908414,ML Engineer — some signal (assessment avg 53/100) offset by no major red flags noted. Rank ~78.
+CAND_0036520,79,0.908083,4.2yr exp with 4.1yr at product firms; 4.1yr at product companies. no major red flags noted
+CAND_0075249,80,0.908038,6.2yr exp with 3.0yr at product firms; 3.0yr at product companies. no major red flags noted
+CAND_0030784,81,0.907571,4.4yr exp with 4.3yr at product firms; assessment avg 61/100. notice period 90d is long
+CAND_0067535,82,0.907343,"6.8yr exp with 5.2yr at product firms; shows 5 core JD concept(s): deep_learning, ml_production, nlp, ranking_ir, recommendation. no major red flags noted"
+CAND_0092278,83,0.906915,Possibly relevant (assessment avg 67/100) but notice period 90d is long limits confidence.
+CAND_0035315,84,0.906674,Possibly relevant (assessment avg 65/100) but notice period 120d is long limits confidence.
+CAND_0014063,85,0.906559,"5.4yr exp with 5.3yr at product firms; top skills include Data Science, LLMs, MLOps. no major red flags noted"
+CAND_0060257,86,0.906060,Possibly relevant (5.8yr at product companies) but no major red flags noted limits confidence.
+CAND_0099675,87,0.905967,Possibly relevant (3.8yr at product companies) but no major red flags noted limits confidence.
+CAND_0074621,88,0.905931,"Possibly relevant (top skills include Vector Search, Feature Engineering, Haystack) but notice period 90d is long limits confidence."
+CAND_0087630,89,0.905845,Possibly relevant (assessment avg 68/100) but no major red flags noted limits confidence.
+CAND_0003557,90,0.905827,"ML Engineer — some signal (shows 5 core JD concept(s): deep_learning, ml_production, nlp, ranking_ir, recommendation) offset by notice period 90d is long. Rank ~90."
+CAND_0055992,91,0.905443,Possibly relevant (5.7yr at product companies) but location (Sydney) outside India preference limits confidence.
+CAND_0061244,92,0.905304,Possibly relevant (assessment avg 80/100) but low recruiter response rate limits confidence.
+CAND_0096172,93,0.905090,"5.2yr exp with 5.1yr at product firms; top skills include OpenSearch, Haystack, Forecasting. no major red flags noted"
+CAND_0057529,94,0.904900,Possibly relevant (current role: Junior ML Engineer) but no major red flags noted limits confidence.
+CAND_0058287,95,0.904868,"Computer Vision Engineer — some signal (shows 5 core JD concept(s): deep_learning, ml_production, nlp, ranking_ir, recommendation) offset by notice period 90d is long. Rank ~95."
+CAND_0055960,96,0.904867,AI Specialist — some signal (assessment avg 74/100) offset by notice period 90d is long. Rank ~96.
+CAND_0051486,97,0.904842,"5.9yr exp with 5.8yr at product firms; top skills include Fine-tuning LLMs, Microservices, Tally. notice period 120d is long"
+CAND_0026716,98,0.904106,Possibly relevant (GitHub activity score 78.6/10) but no major red flags noted limits confidence.
+CAND_0082913,99,0.903977,"5.5yr exp with 3.6yr at product firms; top skills include YOLO, FAISS, CSS. no major red flags noted"
+CAND_0042506,100,0.903885,"4.2yr exp with 2.7yr at product firms; shows 5 core JD concept(s): deep_learning, ml_production, nlp, ranking_ir, recommendation. no major red flags noted"

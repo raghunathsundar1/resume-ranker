@@ -224,8 +224,9 @@ def _gate(row: dict) -> tuple[bool, float]:
         return True, 1.0
 
     # Soft penalties
-    if row.get("skill_months_exceed_career"):
-        penalty += 0.15
+    # skill_months_exceed_career fires ~18% of candidates, mostly legitimate
+    # (skills span overlapping roles). Keyword stuffers are already penalised
+    # in concept_score (uncorroborated ratio > 0.7 → raw *= 0.3). Skip here.
     gap = abs(float(row.get("dur_vs_dates_gap") or 0))
     if gap > 2.0:
         penalty += min(0.2, (gap - 2.0) * 0.05)
