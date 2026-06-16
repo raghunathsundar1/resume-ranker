@@ -8,6 +8,11 @@ Usage:
     python rank.py --candidates sample.parquet  --out sample_submission.csv
 
 Constraints: ≤5 min, ≤16 GB RAM, CPU-only, no network, deterministic.
+
+Performance design:
+- Concept scoring uses pre-tokenised keyword-set intersection (no regex in hot path)
+- BM25 runs only on the top-3000 candidates by concept score (not all 38K active)
+- All text tokenised once per candidate at load time
 """
 
 from __future__ import annotations
@@ -15,145 +20,182 @@ from __future__ import annotations
 import argparse
 import csv
 import json
-import math
 import random
 import re
 import sys
 from datetime import date
 from pathlib import Path
-from typing import Any
 
 import numpy as np
 import pyarrow.parquet as pq
 from rank_bm25 import BM25Okapi
 
-# ---------------------------------------------------------------------------
-# Constants
-# ---------------------------------------------------------------------------
-
 AS_OF = date(2026, 1, 31)
 
 # ---------------------------------------------------------------------------
-# Job Description — embedded so rank.py needs no network or external files
+# Job Description
 # ---------------------------------------------------------------------------
 
 JD_TEXT = """
-Senior Applied Machine Learning Engineer Search Ranking Recommendation
-
-We are a product technology company hiring a Senior ML Engineer to build
-and improve our search ranking and recommendation systems at scale.
-
-Requirements five to nine years total experience three or more years applied
-machine learning at product companies. Proven experience shipping production
-search or recommendation systems. Strong foundation in machine learning and
-information retrieval. Experience with ranking algorithms learning to rank
-BM25 neural ranking NDCG optimization. Python expertise PyTorch or TensorFlow.
-NLP text understanding embeddings BERT transformers text classification.
-Experience with AB testing offline evaluation metrics experiment frameworks.
-Recommendation systems collaborative filtering two tower models matrix
-factorization candidate generation. Engineering skills distributed computing
-Spark containerization model serving MLOps feature stores.
-
-Location Noida or Pune India preferred open to remote for strong candidates.
-
-Not a fit career entirely in IT services or consulting with no product company
-experience CV speech robotics focus without search NLP information retrieval
-exposure pure research roles with no production deployment LLM framework
-integrations LangChain LlamaIndex as primary ML experience.
+senior applied machine learning engineer search ranking recommendation
+product technology company hiring senior ml engineer build improve search
+ranking recommendation systems scale requirements five nine years total
+experience three more years applied machine learning product companies
+proven experience shipping production search recommendation systems strong
+foundation machine learning information retrieval experience ranking
+algorithms learning rank bm25 neural ranking ndcg optimization python
+expertise pytorch tensorflow nlp text understanding embeddings bert
+transformers text classification experience ab testing offline evaluation
+metrics experiment frameworks recommendation systems collaborative filtering
+two tower models matrix factorization candidate generation engineering skills
+distributed computing spark containerization model serving mlops feature
+stores location noida pune india preferred
 """
 
+JD_TOKENS = re.findall(r"[a-z0-9]+", JD_TEXT)
+
 # ---------------------------------------------------------------------------
-# B3 — Concept ontology (pattern → source multiplier → relevance weight)
-# Each concept is matched against work history (1.0), titles (0.8),
-# and skills list (corroborated 1.0 / uncorroborated 0.1).
+# Concept ontology — keyword sets (no regex in scoring hot-path)
+#
+# Each entry: (weight, exact_tokens, substring_phrases)
+# exact_tokens: matched against the pre-tokenised frozenset (O(1) lookup)
+# substring_phrases: checked with `phrase in lowercased_text`
 # ---------------------------------------------------------------------------
 
-# (name, weight, patterns)
-CONCEPTS: list[tuple[str, float, list[str]]] = [
-    ("ranking_ir", 1.5, [
-        r"\branking\b", r"\blearn.{0,5}to.{0,5}rank\b", r"\bLTR\b",
-        r"\bBM25\b", r"\bNDCG\b", r"\bMRR\b", r"\bclick.through\b",
-        r"\brelevance\b", r"\binformation.retrieval\b", r"\b\bIR\b",
-        r"\bElasticsearch\b", r"\bSolr\b", r"\bLucene\b",
-        r"\bsemantic.search\b", r"\bvector.search\b",
-    ]),
-    ("recommendation", 1.3, [
-        r"\brecommend", r"\bRecSys\b", r"\bcollaborative.filtering\b",
-        r"\bmatrix.factorization\b", r"\btwo.tower\b", r"\bpersonali",
-        r"\bcandidate.generation\b", r"\bitem.embedding\b",
-    ]),
-    ("nlp", 1.0, [
-        r"\bNLP\b", r"\bnatural.language\b", r"\bBERT\b", r"\btransformer",
-        r"\bembedding", r"\btext.classif", r"\bnamed.entity\b",
-        r"\bsentiment\b", r"\btokeniz", r"\blanguage.model\b",
-        r"\bword2vec\b", r"\bGPT\b", r"\bLLM\b",
-    ]),
-    ("ml_production", 1.0, [
-        r"\bproduction\b", r"\bdeploy", r"\bserving\b", r"\binference\b",
-        r"\bA/B\b", r"\bMLOps\b", r"\bMLflow\b", r"\bfeature.store\b",
-        r"\bmodel.monitor", r"\breal.time\b", r"\blatency\b",
-        r"\bscale\b", r"\bthroughput\b",
-    ]),
-    ("deep_learning", 0.8, [
-        r"\bdeep.learning\b", r"\bneural.network\b", r"\bPyTorch\b",
-        r"\bTensorFlow\b", r"\bfine.tun", r"\bONNX\b",
-        r"\bgradient\b", r"\bbackprop\b",
-    ]),
-    ("ml_general", 0.5, [
-        r"\bmachine.learning\b", r"\bclassif", r"\bregressi",
-        r"\bclustering\b", r"\bensemble\b", r"\bXGBoost\b",
-        r"\brandom.forest\b", r"\bscikit\b", r"\bfeature.engineer",
-    ]),
-    ("engineering", 0.4, [
-        r"\bSpark\b", r"\bKafka\b", r"\bKubernetes\b", r"\bDocker\b",
-        r"\bdistributed\b", r"\bpipeline\b", r"\bAPI\b",
-        r"\bmicroservice\b", r"\bPython\b",
-    ]),
-]
+CONCEPTS: dict[str, tuple[float, frozenset[str], tuple[str, ...]]] = {
+    "ranking_ir": (1.5,
+        frozenset({"ranking", "ltr", "bm25", "ndcg", "mrr", "relevance",
+                   "elasticsearch", "solr", "lucene", "retrieval", "reranking",
+                   "rerank", "ranker", "pagerank"}),
+        ("learn to rank", "click through", "information retrieval",
+         "semantic search", "vector search", "query understanding",
+         "click-through rate")),
+    "recommendation": (1.3,
+        frozenset({"recsys", "recommender", "recommend", "personalization",
+                   "personalized", "personalise", "personalised"}),
+        ("collaborative filtering", "matrix factorization", "two tower",
+         "two-tower", "candidate generation", "item embedding",
+         "recommendation system", "recommendation engine")),
+    "nlp": (1.0,
+        frozenset({"nlp", "bert", "transformer", "transformers", "gpt", "llm",
+                   "embedding", "embeddings", "tokenizer", "sentiment",
+                   "word2vec", "fasttext", "glove", "ner"}),
+        ("natural language", "text classification", "named entity",
+         "language model", "text embedding", "sequence model")),
+    "ml_production": (1.0,
+        frozenset({"mlops", "mlflow", "kubeflow", "triton", "bentoml",
+                   "inference", "serving", "deployed", "deployment",
+                   "latency", "throughput", "ab", "experimentation"}),
+        ("feature store", "model serving", "model monitoring",
+         "a/b test", "production ml", "ml pipeline", "real-time")),
+    "deep_learning": (0.8,
+        frozenset({"pytorch", "tensorflow", "keras", "onnx", "jax",
+                   "gradient", "backprop", "backpropagation", "finetuning",
+                   "finetuned", "pretrained"}),
+        ("deep learning", "neural network", "fine-tuning", "fine tuning")),
+    "ml_general": (0.5,
+        frozenset({"xgboost", "lightgbm", "sklearn", "scikit", "regression",
+                   "classification", "clustering", "ensemble", "boosting",
+                   "catboost", "randomforest", "svm", "ml"}),
+        ("machine learning", "feature engineering", "model training",
+         "random forest", "gradient boosting")),
+    "engineering": (0.4,
+        frozenset({"spark", "kafka", "kubernetes", "docker", "airflow",
+                   "python", "scala", "java", "golang", "distributed",
+                   "microservice", "grpc", "api", "pipeline"}),
+        ("distributed computing", "data pipeline", "stream processing")),
+}
 
-# Compiled patterns (done once at import time)
-_COMPILED: list[tuple[str, float, list[re.Pattern]]] = [
-    (name, weight, [re.compile(p, re.I) for p in pats])
-    for name, weight, pats in CONCEPTS
-]
+# Pre-flatten all tokens across concepts for the gate's fast check
+_STRONG_CONCEPT_TOKENS: frozenset[str] = frozenset().union(
+    *[kws for name, (_, kws, _) in CONCEPTS.items()
+      if name in ("ranking_ir", "nlp", "recommendation", "deep_learning")]
+)
+_STRONG_PHRASES: tuple[str, ...] = tuple(
+    p for name, (_, _, phrases) in CONCEPTS.items()
+    if name in ("ranking_ir", "nlp", "recommendation", "deep_learning")
+    for p in phrases
+)
 
-# Non-ML job title patterns (hard disqualifier for clearly irrelevant roles)
-_NON_ML_TITLE_PATS = [re.compile(p, re.I) for p in [
-    r"\bmarketing\b", r"\bsales\b", r"\baccountan", r"\bfinance\b",
-    r"\bHR\b", r"\bhuman.resource", r"\bcontent.writer\b", r"\bcopywriter\b",
-    r"\bUX\b", r"\bUI\b", r"\bgraphic.designer\b",
-    r"\bproject.manager\b", r"\bscrum.master\b",
-    r"\bbusiness.analyst\b", r"\bproduct.manager\b",
-    r"\bcustomer.support\b", r"\bcustomer.success\b",
-    r"\boperations.manager\b", r"\bsupply.chain\b",
-    r"\brecruit", r"\btalent.acquisition\b",
-    r"\blegal\b", r"\bcounsel\b", r"\bparalegal\b",
-    r"\bdoctor\b", r"\bnurse\b", r"\bphysician\b",
-    r"\bteacher\b", r"\btutor\b", r"\bprofessor\b",
-]]
+# ---------------------------------------------------------------------------
+# Non-ML title blocklist
+# ---------------------------------------------------------------------------
 
-# CV/robotics/speech patterns that indicate domain mismatch
-_MISMATCH_PATS = [re.compile(p, re.I) for p in [
-    r"\bcomputer.vision\b", r"\bimage.classif", r"\bobject.detect",
-    r"\bspeech.recognit", r"\bTTS\b", r"\btext.to.speech\b",
-    r"\bASR\b", r"\brobotic", r"\bself.driving\b",
-]]
+_NON_ML_TITLE_RE = re.compile(
+    r"\b(marketing|sales|accountan|finance|human.resource|\bhr\b|"
+    r"content.writer|copywriter|ux\b|graphic.designer|project.manager|"
+    r"scrum.master|business.analyst|product.manager|customer.support|"
+    r"customer.success|operations.manager|supply.chain|recruit|"
+    r"talent.acquisition|legal\b|counsel|paralegal|doctor|nurse|"
+    r"physician|teacher|tutor|professor)\b",
+    re.I,
+)
 
-# LLM-framework-glue patterns (sub-12-month-only → disqualifier)
-_LLM_GLUE_PATS = [re.compile(p, re.I) for p in [
-    r"\bLangChain\b", r"\bLlamaIndex\b", r"\bLangGraph\b",
-    r"\bOpenAI.API\b", r"\bchatbot\b", r"\bRAG\b",
-]]
+# CV/speech/robotics domain mismatch (no NLP/IR coverage)
+_MISMATCH_TOKENS: frozenset[str] = frozenset({
+    "opencv", "yolo", "detection", "segmentation",
+    "asr", "tts", "whisper", "robotic", "robotics",
+})
+_MISMATCH_PHRASES = ("computer vision", "object detection", "image classification",
+                     "speech recognition", "text to speech", "self-driving")
+
+# ---------------------------------------------------------------------------
+# Text pre-processing (called once per candidate at load time)
+# ---------------------------------------------------------------------------
+
+_TOKEN_RE = re.compile(r"[a-z0-9]+")
+
+
+def _tokenize(text: str) -> frozenset[str]:
+    return frozenset(_TOKEN_RE.findall(text.lower()))
+
+
+def _precompute(row: dict) -> None:
+    """Add _hist_lower, _title_lower, _skill_lower, _tok_* in-place."""
+    hist = ((row.get("history_text") or "") + " " +
+            (row.get("summary_text") or "")).lower()
+    titles = (row.get("title_history_text") or "").lower()
+    skills_raw = row.get("skills_raw") or "[]"
+    skill_text = " ".join(
+        s.get("name", "") for s in json.loads(skills_raw)
+    ).lower()
+
+    row["_hist_lower"] = hist
+    row["_title_lower"] = titles
+    row["_skill_lower"] = skill_text
+    row["_tok_hist"] = _tokenize(hist)
+    row["_tok_title"] = _tokenize(titles)
+    row["_tok_skill"] = _tokenize(skill_text)
+
+
+# ---------------------------------------------------------------------------
+# Concept matching (fast path — no regex)
+# ---------------------------------------------------------------------------
+
+def _hit_concepts(tokens: frozenset[str], text_lower: str) -> frozenset[str]:
+    hits = set()
+    for name, (_, kws, phrases) in CONCEPTS.items():
+        if tokens & kws:
+            hits.add(name)
+        elif any(p in text_lower for p in phrases):
+            hits.add(name)
+    return frozenset(hits)
+
+
+def _has_strong_ml(tokens: frozenset[str], text_lower: str) -> bool:
+    if tokens & _STRONG_CONCEPT_TOKENS:
+        return True
+    return any(p in text_lower for p in _STRONG_PHRASES)
+
 
 # ---------------------------------------------------------------------------
 # B2 — Integrity gate
 # ---------------------------------------------------------------------------
 
 def _gate(row: dict) -> tuple[bool, float]:
-    """Returns (disqualified: bool, penalty: float 0..1)."""
+    """(disqualified, penalty). Pre-compute fields must exist."""
     penalty = 0.0
 
-    # Hard honeypot exclusions
     if row.get("has_impossible_tenure"):
         return True, 1.0
     if int(row.get("expert_zero_months_count") or 0) > 0:
@@ -161,35 +203,30 @@ def _gate(row: dict) -> tuple[bool, float]:
     if row.get("has_future_date"):
         return True, 1.0
 
-    # Hard JD mismatch: clearly non-ML current title with no relevant history
+    # Non-ML title gate: needs ≥2 strong concept hits in work history
     current_title = row.get("current_title") or ""
-    title_hist = row.get("title_history_text") or ""
-    all_titles = current_title + " | " + title_hist
-    is_non_ml_title = any(p.search(current_title) for p in _NON_ML_TITLE_PATS)
-    has_ml_in_history = bool(_match_concepts(
-        (row.get("history_text") or "") + " " + title_hist
-    ) & {"ranking_ir", "nlp", "recommendation", "ml_production", "deep_learning", "ml_general"})
+    if _NON_ML_TITLE_RE.search(current_title):
+        hist_tokens = row["_tok_hist"] | row["_tok_title"]
+        hist_text = row["_hist_lower"] + " " + row["_title_lower"]
+        strong_hits = sum(
+            1 for name in ("ranking_ir", "nlp", "recommendation", "deep_learning")
+            if (hist_tokens & CONCEPTS[name][1]) or
+               any(p in hist_text for p in CONCEPTS[name][2])
+        )
+        if strong_hits < 2:
+            return True, 1.0
 
-    # Non-ML title with insufficient ML work history → exclude.
-    # Require hits from ≥2 strong concepts (ranking/NLP/reco/deep learning),
-    # not just weak/generic ml_general or ml_production hits.
-    strong_ml_hits = _match_concepts(
-        (row.get("history_text") or "") + " " + title_hist
-    ) & {"ranking_ir", "nlp", "recommendation", "deep_learning"}
-    if is_non_ml_title and len(strong_ml_hits) < 2:
-        return True, 1.0
-
-    # JD disqualifier: consulting/services-only career
-    svc_yrs = float(row.get("services_years") or 0)
-    prd_yrs = float(row.get("product_years") or 0)
-    if svc_yrs > 4 and prd_yrs < 0.5:
+    # Services-only career
+    svc = float(row.get("services_years") or 0)
+    prd = float(row.get("product_years") or 0)
+    if svc > 4 and prd < 0.5:
         return True, 1.0
 
     # Soft penalties
     if row.get("skill_months_exceed_career"):
         penalty += 0.15
     gap = abs(float(row.get("dur_vs_dates_gap") or 0))
-    if gap > 2.0:  # >2 yr discrepancy beyond normal baseline
+    if gap > 2.0:
         penalty += min(0.2, (gap - 2.0) * 0.05)
     if row.get("has_overlapping_roles"):
         penalty += 0.05
@@ -198,216 +235,132 @@ def _gate(row: dict) -> tuple[bool, float]:
 
 
 # ---------------------------------------------------------------------------
-# B3 — Concept scoring with evidence weighting
+# B3 — Concept scoring (evidence-weighted, keyword-set hot path)
 # ---------------------------------------------------------------------------
-
-def _match_concepts(text: str) -> set[str]:
-    """Return set of concept names that fire in this text."""
-    hits = set()
-    for name, _w, compiled_pats in _COMPILED:
-        for pat in compiled_pats:
-            if pat.search(text):
-                hits.add(name)
-                break
-    return hits
-
 
 def _concept_score(row: dict) -> float:
-    """Evidence-weighted concept score in [0, 1]."""
-    history = row.get("history_text") or ""
-    titles = row.get("title_history_text") or ""
-    summary = row.get("summary_text") or ""
-    skills = json.loads(row.get("skills_raw") or "[]")
+    tok_hist = row["_tok_hist"]
+    tok_title = row["_tok_title"]
+    tok_skill = row["_tok_skill"]
+    hist_text = row["_hist_lower"]
+    title_text = row["_title_lower"]
+    skill_text = row["_skill_lower"]
 
-    # Skill names that appear in work history (corroborated)
-    history_lower = (history + " " + summary).lower()
+    hist_hits = _hit_concepts(tok_hist, hist_text)
+    title_hits = _hit_concepts(tok_title, title_text)
+    skill_hits = _hit_concepts(tok_skill, skill_text)
+    corroborated = skill_hits & hist_hits
+    uncorroborated = skill_hits - hist_hits
 
-    # Hit sets per source
-    hist_hits = _match_concepts(history + "\n" + summary)
-    title_hits = _match_concepts(titles)
-
-    # Skills: split corroborated vs claimed-only
-    skill_names_text = " ".join(s.get("name", "") for s in skills)
-    skill_hit_names = _match_concepts(skill_names_text)
-    corroborated = skill_hit_names & hist_hits
-    uncorroborated = skill_hit_names - hist_hits
-
-    raw_score = 0.0
-    max_score = 0.0
-
-    for name, weight, _ in CONCEPTS:
-        max_score += weight
-        contribution = 0.0
+    raw = 0.0
+    max_w = 0.0
+    for name, (w, _, _) in CONCEPTS.items():
+        max_w += w
+        c = 0.0
         if name in hist_hits:
-            contribution = max(contribution, 1.0)
-        if name in title_hits:
-            contribution = max(contribution, 0.8)
+            c = 1.0
+        elif name in title_hits:
+            c = 0.8
         if name in corroborated:
-            contribution = max(contribution, 1.0)
+            c = max(c, 1.0)
         elif name in uncorroborated:
-            contribution = max(contribution, 0.1)
-        raw_score += weight * contribution
+            c = max(c, 0.1)
+        raw += w * c
 
-    # Keyword-stuffer penalty: large uncorroborated ratio collapses score
-    total_skill_hits = len(skill_hit_names)
-    if total_skill_hits > 0:
-        uncorr_ratio = len(uncorroborated) / total_skill_hits
-        if uncorr_ratio > 0.7:
-            raw_score *= 0.3
+    # Keyword-stuffer penalty
+    total_skill_hits = len(skill_hits)
+    if total_skill_hits > 0 and len(uncorroborated) / total_skill_hits > 0.7:
+        raw *= 0.3
 
-    return raw_score / max_score if max_score > 0 else 0.0
-
-
-# ---------------------------------------------------------------------------
-# B3 — BM25 relevance
-# ---------------------------------------------------------------------------
-
-def _tokenize(text: str) -> list[str]:
-    return re.findall(r"[a-zA-Z0-9]+", (text or "").lower())
-
-
-def _build_bm25(rows: list[dict]) -> BM25Okapi:
-    corpus = []
-    for r in rows:
-        text = " ".join([
-            r.get("history_text") or "",
-            r.get("title_history_text") or "",
-            r.get("summary_text") or "",
-            " ".join(
-                s.get("name", "") for s in json.loads(r.get("skills_raw") or "[]")
-            ),
-        ])
-        corpus.append(_tokenize(text))
-    return BM25Okapi(corpus)
-
-
-# ---------------------------------------------------------------------------
-# B4 — Structured-fit, behavioral, logistics, composite
-# ---------------------------------------------------------------------------
-
-def _structured_fit(row: dict) -> float:
-    """[0, 1] — experience band, product-ML years, seniority."""
-    yoe = float(row.get("yoe_claimed") or 0)
-    prd = float(row.get("product_years") or 0)
-    career_m = int(row.get("career_months") or 0)
-
-    # Experience band 5–9 yr optimal
-    if 5 <= yoe <= 9:
-        exp_score = 1.0
-    elif yoe < 5:
-        exp_score = yoe / 5.0
-    else:
-        exp_score = max(0.5, 1.0 - (yoe - 9) * 0.04)
-
-    # Product-company ML years (not services)
-    prd_score = min(1.0, prd / 4.0)
-
-    # Services dilution: heavy services background dilutes fit
-    svc = float(row.get("services_years") or 0)
-    svc_ratio = svc / (yoe + 0.1)
-    svc_penalty = svc_ratio * 0.5  # 100% services → 0.5 penalty on product score
-
-    return (exp_score * 0.4 + prd_score * 0.6) * (1 - svc_penalty)
-
-
-def _behavioral(row: dict) -> float:
-    """[0, 1] — recency, engagement, assessment, openness."""
-    last_active = int(row.get("sig_last_active_days") or 999)
-    # Recency: 0-30d → 1.0, 180d → 0.5, >365d → 0.1
-    recency = max(0.1, 1.0 - last_active / 365.0)
-
-    rr = float(row.get("sig_recruiter_response_rate") or 0)
-    otw = 1.0 if row.get("sig_open_to_work_flag") else 0.5
-    assessment = float(row.get("sig_skill_assessment_mean") or 0) / 100.0
-    github = min(1.0, max(0.0, float(row.get("sig_github_activity_score") or 0)) / 10.0)
-
-    return (recency * 0.35 + rr * 0.25 + otw * 0.15 +
-            assessment * 0.15 + github * 0.10)
-
-
-def _logistics(row: dict) -> float:
-    """[0, 1] — location and notice period soft modifiers."""
-    country = (row.get("country") or "").lower()
-    location = (row.get("location") or "").lower()
-    notice = int(row.get("sig_notice_period_days") or 90)
-    willing = row.get("sig_willing_to_relocate") or False
-
-    # India + target metros preferred
-    if country == "india":
-        loc_score = 1.0
-        if any(c in location for c in ("noida", "pune", "bengaluru", "bangalore",
-                                        "hyderabad", "mumbai", "delhi", "gurugram",
-                                        "gurgaon", "chennai")):
-            loc_score = 1.1  # slight boost for target metro
-    elif willing:
-        loc_score = 0.7
-    else:
-        loc_score = 0.5
-
-    # Notice period: ≤30d ideal, 90d OK, >90d soft penalty
-    if notice <= 30:
-        np_score = 1.0
-    elif notice <= 60:
-        np_score = 0.9
-    elif notice <= 90:
-        np_score = 0.8
-    else:
-        np_score = max(0.5, 0.8 - (notice - 90) / 180.0)
-
-    return min(1.0, loc_score) * 0.7 + np_score * 0.3
+    return raw / max_w if max_w else 0.0
 
 
 def _cv_speech_penalty(row: dict) -> float:
-    """Extra penalty for CV/speech/robotics-heavy profiles with no NLP/IR."""
-    all_text = " ".join([
-        row.get("history_text") or "",
-        row.get("title_history_text") or "",
-        row.get("summary_text") or "",
-    ])
-    mismatch = sum(1 for p in _MISMATCH_PATS if p.search(all_text))
-    nlp_ir_hits = _match_concepts(all_text) & {"ranking_ir", "nlp", "recommendation"}
-    if mismatch >= 3 and not nlp_ir_hits:
+    tokens = row["_tok_hist"] | row["_tok_title"]
+    text = row["_hist_lower"]
+    mismatch = len(tokens & _MISMATCH_TOKENS) + sum(
+        1 for p in _MISMATCH_PHRASES if p in text
+    )
+    has_ir = bool((tokens & CONCEPTS["ranking_ir"][1]) or
+                  any(p in text for p in CONCEPTS["ranking_ir"][2]))
+    has_nlp = bool((tokens & CONCEPTS["nlp"][1]) or
+                   any(p in text for p in CONCEPTS["nlp"][2]))
+    if mismatch >= 3 and not (has_ir or has_nlp):
         return 0.4
-    if mismatch >= 2 and not nlp_ir_hits:
+    if mismatch >= 2 and not (has_ir or has_nlp):
         return 0.2
     return 0.0
 
 
-def _composite(relevance: float, concept: float, fit: float,
-               behav: float, logist: float, penalty: float,
-               cv_penalty: float) -> float:
-    r = max(0.0, relevance) ** 0.4
-    c = max(0.0, concept) ** 0.3
-    f = max(0.0, fit) ** 0.15
-    b = max(0.0, behav) ** 0.1
-    l_ = max(0.0, logist) ** 0.05
-    base = r * c * f * b * l_
-    return base * (1 - penalty) * (1 - cv_penalty)
+# ---------------------------------------------------------------------------
+# B4 — Structured fit, behavioral, logistics
+# ---------------------------------------------------------------------------
+
+def _structured_fit(row: dict) -> float:
+    yoe = float(row.get("yoe_claimed") or 0)
+    prd = float(row.get("product_years") or 0)
+    svc = float(row.get("services_years") or 0)
+    exp_score = 1.0 if 5 <= yoe <= 9 else (yoe / 5.0 if yoe < 5 else max(0.5, 1.0 - (yoe - 9) * 0.04))
+    prd_score = min(1.0, prd / 4.0)
+    svc_ratio = svc / (yoe + 0.1)
+    return (exp_score * 0.4 + prd_score * 0.6) * (1 - svc_ratio * 0.5)
+
+
+def _behavioral(row: dict) -> float:
+    recency = max(0.1, 1.0 - int(row.get("sig_last_active_days") or 999) / 365.0)
+    rr = float(row.get("sig_recruiter_response_rate") or 0)
+    otw = 1.0 if row.get("sig_open_to_work_flag") else 0.5
+    assessment = float(row.get("sig_skill_assessment_mean") or 0) / 100.0
+    github = min(1.0, max(0.0, float(row.get("sig_github_activity_score") or 0)) / 10.0)
+    return recency * 0.35 + rr * 0.25 + otw * 0.15 + assessment * 0.15 + github * 0.10
+
+
+def _logistics(row: dict) -> float:
+    country = (row.get("country") or "").lower()
+    location = (row.get("location") or "").lower()
+    notice = int(row.get("sig_notice_period_days") or 90)
+    willing = bool(row.get("sig_willing_to_relocate"))
+    if country == "india":
+        loc = 1.1 if any(c in location for c in (
+            "noida", "pune", "bengaluru", "bangalore", "hyderabad",
+            "mumbai", "delhi", "gurugram", "gurgaon", "chennai")) else 1.0
+    elif willing:
+        loc = 0.7
+    else:
+        loc = 0.5
+    np_score = 1.0 if notice <= 30 else (0.9 if notice <= 60 else
+               (0.8 if notice <= 90 else max(0.5, 0.8 - (notice - 90) / 180.0)))
+    return min(1.0, loc) * 0.7 + np_score * 0.3
+
+
+def _composite(rel: float, concept: float, fit: float,
+               behav: float, logist: float, penalty: float, cv_pen: float) -> float:
+    return (max(0.0, rel) ** 0.4 * max(0.0, concept) ** 0.3 *
+            max(0.0, fit) ** 0.15 * max(0.0, behav) ** 0.1 *
+            max(0.0, logist) ** 0.05 * (1 - penalty) * (1 - cv_pen))
 
 
 # ---------------------------------------------------------------------------
 # B5 — Reasoning composer
 # ---------------------------------------------------------------------------
 
-# Sentence frames indexed by (0..N); picked per-candidate via seeded random
-_FRAMES_POSITIVE = [
-    "{title} with {yoe:.1f}yr exp and {prd:.1f}yr at product companies; {fact}.",
-    "Strong product-company background ({prd:.1f}yr); {fact}. {jd_link}.",
+_FRAMES_TOP = [
     "{yoe:.1f}yr career ({prd:.1f}yr at product companies); {fact}. {concern}",
+    "Strong product-company background ({prd:.1f}yr); {fact}. {jd_link}.",
     "Candidate has {prd:.1f}yr shipping production ML at product firms; {fact}.",
-    "{title} — {fact}; assessment scores {assess:.0f}/100 avg. {concern}",
-    "Located in {loc}: {fact}; {prd:.1f}yr product exp makes a credible shortlist.",
+    "{title} with {yoe:.1f}yr exp and {prd:.1f}yr at product companies; {fact}.",
     "{yoe:.1f}yr total, {prd:.1f}yr at product companies — {fact}. {jd_link}.",
 ]
-
-_FRAMES_WEAK = [
-    "{title} ({yoe:.1f}yr exp); {fact} but {concern}.",
-    "Mixed profile: {fact}; however {concern}. Borderline for this JD.",
+_FRAMES_MID = [
     "{yoe:.1f}yr exp with {prd:.1f}yr at product firms; {fact}. {concern}",
+    "Mixed profile: {fact}; however {concern}. Borderline for this JD.",
+    "{title} ({yoe:.1f}yr exp); {fact} but {concern}.",
+]
+_FRAMES_TAIL = [
     "Possibly relevant ({fact}) but {concern} limits confidence.",
     "{title} — some signal ({fact}) offset by {concern}. Rank ~{rank}.",
+    "{yoe:.1f}yr exp with {prd:.1f}yr at product firms; {fact}. {concern}",
 ]
-
 _JD_LINKS = [
     "directly addresses the JD's search/ranking requirement",
     "aligns with the JD's NLP/IR focus",
@@ -416,50 +369,32 @@ _JD_LINKS = [
     "relevant to the JD's product-company bias",
 ]
 
-_CONCERNS = [
-    "notice period {notice}d is long",
-    "currently in services ({svc:.1f}yr), limited product exposure",
-    "location ({loc}) outside Noida/Pune preference",
-    "behavioral signals are weak (low recruiter response rate)",
-    "no strong corroborating evidence in work descriptions",
-    "heavy CV/speech background; NLP/IR exposure unclear",
-]
 
-
-def _compose_reasoning(row: dict, rank: int, score: float) -> str:
-    rng = random.Random(row.get("candidate_id", "") + str(rank))
-
+def _compose_reasoning(row: dict, rank: int) -> str:
+    rng = random.Random(str(row.get("candidate_id", "")) + str(rank))
     yoe = float(row.get("yoe_claimed") or 0)
     prd = float(row.get("product_years") or 0)
     svc = float(row.get("services_years") or 0)
     title = row.get("current_title") or "Candidate"
-    loc = (row.get("location") or row.get("country") or "unknown location")
+    loc = row.get("location") or row.get("country") or "unknown"
     notice = int(row.get("sig_notice_period_days") or 90)
     assess = float(row.get("sig_skill_assessment_mean") or 0)
-    country = (row.get("country") or "").lower()
+    github = float(row.get("sig_github_activity_score") or 0)
 
-    # Pick 2-3 concrete facts from available signals
-    all_text = " ".join([
-        row.get("history_text") or "",
-        row.get("summary_text") or "",
-        row.get("title_history_text") or "",
-    ])
-    concepts_hit = _match_concepts(all_text) & {"ranking_ir", "nlp", "recommendation",
-                                                 "ml_production", "deep_learning"}
-    skill_names = [s.get("name", "") for s in json.loads(row.get("skills_raw") or "[]")]
-    top_skills = ", ".join(skill_names[:3]) if skill_names else "unspecified skills"
+    concepts_hit = _hit_concepts(row["_tok_hist"], row["_hist_lower"]) & {
+        "ranking_ir", "nlp", "recommendation", "ml_production", "deep_learning"}
+    skills = json.loads(row.get("skills_raw") or "[]")
+    top_skills = ", ".join(s.get("name", "") for s in skills[:3]) or "unspecified"
 
     fact_pool = [
         f"shows {len(concepts_hit)} core JD concept(s): {', '.join(sorted(concepts_hit)) or 'none'}",
-        f"current role: {title}",
         f"top skills include {top_skills}",
-        f"assessment avg {assess:.0f}/100" if assess > 0 else None,
-        f"{prd:.1f}yr at product companies" if prd > 1 else None,
-        f"GitHub activity score {row.get('sig_github_activity_score', 0):.1f}/10",
+        f"current role: {title}",
+        *([ f"assessment avg {assess:.0f}/100"] if assess > 0 else []),
+        *([f"{prd:.1f}yr at product companies"] if prd > 1 else []),
+        *([f"GitHub activity score {github:.1f}/10"] if github > 0 else []),
     ]
-    fact_pool = [f for f in fact_pool if f]
-    fact = rng.choice(fact_pool) if fact_pool else "limited signal"
-
+    fact = rng.choice(fact_pool)
     jd_link = rng.choice(_JD_LINKS)
 
     concern_pool = []
@@ -467,39 +402,22 @@ def _compose_reasoning(row: dict, rank: int, score: float) -> str:
         concern_pool.append(f"notice period {notice}d is long")
     if svc > prd and svc > 2:
         concern_pool.append(f"currently in services ({svc:.1f}yr), limited product exposure")
-    if country != "india":
+    if (row.get("country") or "").lower() != "india":
         concern_pool.append(f"location ({loc}) outside India preference")
-    rr = float(row.get("sig_recruiter_response_rate") or 0)
-    if rr < 0.3:
+    if float(row.get("sig_recruiter_response_rate") or 0) < 0.3:
         concern_pool.append("low recruiter response rate")
     if not concern_pool:
         concern_pool.append("no major red flags noted")
+    concern = rng.choice(concern_pool)
 
-    concern = rng.choice(concern_pool) if concern_pool else "no major red flags"
-
-    # Rank band: top decile → positive frame, rest → weaker frame
-    top_decile = rank <= 10
-    mid_band = 11 <= rank <= 50
-
-    if top_decile:
-        frames = _FRAMES_POSITIVE[:4]
-    elif mid_band:
-        frames = _FRAMES_POSITIVE[3:] + _FRAMES_WEAK[:2]
-    else:
-        frames = _FRAMES_WEAK
-
+    frames = _FRAMES_TOP if rank <= 10 else (_FRAMES_MID if rank <= 50 else _FRAMES_TAIL)
     frame = rng.choice(frames)
     try:
-        text = frame.format(
-            title=title, yoe=yoe, prd=prd, svc=svc,
-            loc=loc, notice=notice, assess=assess,
-            fact=fact, jd_link=jd_link, concern=concern,
-            rank=rank,
-        )
+        return frame.format(title=title, yoe=yoe, prd=prd, svc=svc,
+                            loc=loc, notice=notice, assess=assess,
+                            fact=fact, jd_link=jd_link, concern=concern, rank=rank).strip()
     except KeyError:
-        text = f"{title} ({yoe:.1f}yr exp, {prd:.1f}yr product): {fact}. {concern}."
-
-    return text.strip()
+        return f"{title} ({yoe:.1f}yr exp, {prd:.1f}yr product): {fact}. {concern}."
 
 
 # ---------------------------------------------------------------------------
@@ -507,103 +425,110 @@ def _compose_reasoning(row: dict, rank: int, score: float) -> str:
 # ---------------------------------------------------------------------------
 
 def main() -> None:
-    ap = argparse.ArgumentParser(description="Phase B: rank candidates → submission.csv")
-    ap.add_argument("--candidates", required=True, help="features.parquet from normalize.py")
-    ap.add_argument("--out", required=True, help="output submission.csv")
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--candidates", required=True)
+    ap.add_argument("--out", required=True)
     args = ap.parse_args()
 
     inp = Path(args.candidates)
     if not inp.exists():
-        sys.exit(f"Input not found: {inp}")
+        sys.exit(f"Not found: {inp}")
 
+    # B1 — Load + pre-compute text fields
     print("B1 Loading features …", file=sys.stderr)
-    table = pq.read_table(inp)
-    rows = table.to_pylist()
-    n = len(rows)
-    print(f"  {n:,} candidates loaded", file=sys.stderr)
+    rows = pq.read_table(inp).to_pylist()
+    print(f"  {len(rows):,} candidates loaded", file=sys.stderr)
+    for r in rows:
+        _precompute(r)
 
     # B2 — Integrity gate
     print("B2 Integrity gate …", file=sys.stderr)
-    disq_mask = []
-    penalties = []
+    active, penalties = [], []
+    n_dq = 0
     for r in rows:
         dq, pen = _gate(r)
-        disq_mask.append(dq)
-        penalties.append(pen)
-    n_dq = sum(disq_mask)
-    print(f"  {n_dq} disqualified ({n_dq/n*100:.1f}%)", file=sys.stderr)
+        if dq:
+            n_dq += 1
+        else:
+            active.append(r)
+            penalties.append(pen)
+    print(f"  {n_dq} disqualified ({n_dq/len(rows)*100:.1f}%)", file=sys.stderr)
 
-    # B3 — BM25 over all non-disqualified
-    print("B3 BM25 + concept scoring …", file=sys.stderr)
-    active_idx = [i for i, dq in enumerate(disq_mask) if not dq]
-    active_rows = [rows[i] for i in active_idx]
+    # B3a — Concept scores for all active (fast keyword-set matching)
+    print("B3 Concept scoring …", file=sys.stderr)
+    concept_scores = np.array([_concept_score(r) for r in active])
+    cv_penalties = np.array([_cv_speech_penalty(r) for r in active])
 
-    bm25 = _build_bm25(active_rows)
-    jd_tokens = _tokenize(JD_TEXT)
-    bm25_raw = bm25.get_scores(jd_tokens)
+    # B3b — BM25 only on top-3000 by concept score (speed gate)
+    print("B3 BM25 on top-3000 …", file=sys.stderr)
+    TOP_K = min(3000, len(active))
+    top_k_idx = np.argpartition(concept_scores, -TOP_K)[-TOP_K:]
+    top_k_rows = [active[i] for i in top_k_idx]
 
-    # Normalise BM25 scores to [0, 1]
+    def _bm25_doc(r: dict) -> list[str]:
+        return list(r["_tok_hist"] | r["_tok_title"] | r["_tok_skill"])
+
+    bm25 = BM25Okapi([_bm25_doc(r) for r in top_k_rows])
+    bm25_raw = bm25.get_scores(JD_TOKENS)
     bm25_max = bm25_raw.max() if bm25_raw.size > 0 else 1.0
     bm25_norm = bm25_raw / (bm25_max + 1e-9)
 
-    concept_scores = np.array([_concept_score(r) for r in active_rows])
+    # Map BM25 scores back to full active array (non-top-K get 0)
+    bm25_full = np.zeros(len(active))
+    bm25_full[top_k_idx] = bm25_norm
 
-    # Blend: 40% BM25, 60% concept (concept is trap-resistant)
-    relevance = 0.4 * bm25_norm + 0.6 * concept_scores
+    relevance = 0.4 * bm25_full + 0.6 * concept_scores
 
     # B4 — Composite
     print("B4 Composite scoring …", file=sys.stderr)
-    composites = []
-    for j, (i, r) in enumerate(zip(active_idx, active_rows)):
-        fit = _structured_fit(r)
-        behav = _behavioral(r)
-        logist = _logistics(r)
-        cv_pen = _cv_speech_penalty(r)
-        score = _composite(
-            relevance[j], concept_scores[j], fit, behav, logist,
-            penalties[i], cv_pen,
-        )
-        composites.append((score, i))
+    fit = np.array([_structured_fit(r) for r in active])
+    behav = np.array([_behavioral(r) for r in active])
+    logist = np.array([_logistics(r) for r in active])
+    pen_arr = np.array(penalties)
 
-    composites.sort(key=lambda x: (-x[0], rows[x[1]].get("candidate_id", "")))
+    scores = (np.maximum(relevance, 0) ** 0.4 *
+              np.maximum(concept_scores, 0) ** 0.3 *
+              np.maximum(fit, 0) ** 0.15 *
+              np.maximum(behav, 0) ** 0.1 *
+              np.maximum(logist, 0) ** 0.05 *
+              (1 - pen_arr) *
+              (1 - cv_penalties))
 
-    # Take top 100
-    top100 = composites[:100]
+    # Sort: primary score desc, secondary candidate_id asc (deterministic tie-break)
+    order = sorted(range(len(active)),
+                   key=lambda i: (-scores[i], active[i].get("candidate_id", "")))
+    top100_idx = order[:100]
 
-    # Verify honeypot rate (must be < 10%)
-    honeypot_count = sum(
-        1 for score, i in top100
-        if rows[i].get("has_impossible_tenure")
-        or rows[i].get("expert_zero_months_count", 0) > 0
-        or rows[i].get("has_future_date")
+    # Honeypot rate check
+    honeypots = sum(
+        1 for i in top100_idx
+        if active[i].get("has_impossible_tenure")
+        or active[i].get("expert_zero_months_count", 0) > 0
+        or active[i].get("has_future_date")
     )
-    if honeypot_count > 10:
-        sys.exit(f"ABORT: honeypot rate {honeypot_count}/100 exceeds 10% DQ threshold")
+    if honeypots > 10:
+        sys.exit(f"ABORT: honeypot rate {honeypots}/100 > 10% DQ threshold")
 
-    # B5 — Reasoning + emit
-    print("B5 Composing reasoning and writing CSV …", file=sys.stderr)
+    # B5 — Emit
+    print("B5 Reasoning + CSV …", file=sys.stderr)
     out_path = Path(args.out)
+    prev_score = None
     with open(out_path, "w", newline="", encoding="utf-8") as fh:
-        writer = csv.writer(fh)
-        writer.writerow(["candidate_id", "rank", "score", "reasoning"])
-
-        prev_score = None
-        for rank, (score, i) in enumerate(top100, start=1):
-            r = rows[i]
-            # Scores must be non-increasing
-            if prev_score is not None and score > prev_score:
-                score = prev_score
-            prev_score = score
-
-            reasoning = _compose_reasoning(r, rank, score)
-            writer.writerow([
-                r.get("candidate_id", ""),
+        w = csv.writer(fh)
+        w.writerow(["candidate_id", "rank", "score", "reasoning"])
+        for rank, i in enumerate(top100_idx, 1):
+            s = float(scores[i])
+            if prev_score is not None and s > prev_score:
+                s = prev_score
+            prev_score = s
+            w.writerow([
+                active[i].get("candidate_id", ""),
                 rank,
-                f"{score:.6f}",
-                reasoning,
+                f"{s:.6f}",
+                _compose_reasoning(active[i], rank),
             ])
 
-    print(f"Written → {out_path}  (top 100, honeypots in top 100: {honeypot_count})",
+    print(f"Written -> {out_path}  (honeypots in top 100: {honeypots})",
           file=sys.stderr)
 
 
