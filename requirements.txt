@@ -1,0 +1,6 @@
+orjson
+python-dateutil
+pyarrow
+rank-bm25
+numpy
+tqdm

@@ -1,0 +1,29 @@
+# Virtual environment
+.venv/
+venv/
+env/
+
+# Python caches
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+
+# Data files (too large for git)
+data/
+*.parquet
+*.npy
+*.npz
+
+# Build artifacts
+*.egg-info/
+dist/
+build/
+
+# Local only
+*.log
+.env
+submission_metadata.yaml
+submission.csv
+sample.parquet
+features.parquet
