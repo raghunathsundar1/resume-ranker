@@ -7,6 +7,8 @@ candidates with reasoning. No live ranking (the 100K run is offline).
 import csv
 import json
 import os
+import subprocess
+import sys
 from pathlib import Path
 
 import gradio as gr
@@ -95,35 +97,62 @@ def get_candidate_detail(candidate_id: str) -> str:
     return "\n".join(lines)
 
 
+def _run_pipeline(input_path: str, json_array: bool,
+                  parquet_out: str, csv_out: str,
+                  timeout_norm: int = 300, timeout_rank: int = 600
+                  ) -> tuple[pd.DataFrame, str]:
+    """Shared helper: normalize → rank → DataFrame."""
+    cmd_norm = [sys.executable, "normalize.py",
+                "--input", input_path, "--out", parquet_out]
+    if json_array:
+        cmd_norm.append("--json-array")
+    r1 = subprocess.run(cmd_norm, capture_output=True, text=True, timeout=timeout_norm)
+    if r1.returncode != 0:
+        return pd.DataFrame(), f"normalize.py failed:\n{r1.stderr}"
+
+    r2 = subprocess.run(
+        [sys.executable, "rank.py", "--candidates", parquet_out, "--out", csv_out],
+        capture_output=True, text=True, timeout=timeout_rank,
+    )
+    if r2.returncode != 0:
+        return pd.DataFrame(), f"rank.py failed:\n{r2.stderr}"
+
+    with open(csv_out, newline="", encoding="utf-8") as f:
+        rows = list(csv.DictReader(f))
+    df = pd.DataFrame(rows)
+    df["rank"] = df["rank"].astype(int)
+    df["score"] = df["score"].astype(float).round(4)
+    return df.sort_values("rank").reset_index(drop=True), r2.stderr
+
+
 def run_sample_rank() -> tuple[pd.DataFrame, str]:
-    """Run the full pipeline on sample_candidates.json and return results."""
-    import subprocess, sys
     try:
-        r1 = subprocess.run(
-            [sys.executable, "normalize.py",
-             "--input", "data/sample_candidates.json",
-             "--out", "sample_demo.parquet",
-             "--json-array"],
-            capture_output=True, text=True, timeout=60
+        return _run_pipeline(
+            "data/sample_candidates.json", json_array=True,
+            parquet_out="sample_demo.parquet", csv_out="sample_demo_submission.csv",
+            timeout_norm=60, timeout_rank=120,
         )
-        if r1.returncode != 0:
-            return pd.DataFrame(), f"normalize.py failed:\n{r1.stderr}"
+    except Exception as e:
+        return pd.DataFrame(), str(e)
 
-        r2 = subprocess.run(
-            [sys.executable, "rank.py",
-             "--candidates", "sample_demo.parquet",
-             "--out", "sample_demo_submission.csv"],
-            capture_output=True, text=True, timeout=120
+
+def run_uploaded(file_obj) -> tuple[pd.DataFrame, str]:
+    """Accept a user-uploaded JSONL / JSON file and run the full pipeline."""
+    if file_obj is None:
+        return pd.DataFrame(), "No file uploaded."
+    try:
+        path = file_obj if isinstance(file_obj, str) else file_obj.name
+        ext = path.lower()
+        if ext.endswith(".json"):
+            json_array = True
+        elif ext.endswith(".jsonl") or ext.endswith(".jsonl.gz") or ext.endswith(".gz"):
+            json_array = False
+        else:
+            return pd.DataFrame(), f"Unsupported extension: {Path(path).suffix}. Upload .json (array), .jsonl, or .jsonl.gz"
+        return _run_pipeline(
+            path, json_array=json_array,
+            parquet_out="upload_demo.parquet", csv_out="upload_submission.csv",
         )
-        if r2.returncode != 0:
-            return pd.DataFrame(), f"rank.py failed:\n{r2.stderr}"
-
-        with open("sample_demo_submission.csv", newline="", encoding="utf-8") as f:
-            rows = list(csv.DictReader(f))
-        df = pd.DataFrame(rows)
-        df["rank"] = df["rank"].astype(int)
-        df["score"] = df["score"].astype(float).round(4)
-        return df.sort_values("rank").reset_index(drop=True), r2.stderr
     except Exception as e:
         return pd.DataFrame(), str(e)
 
@@ -176,7 +205,39 @@ Runtime: **33 seconds** on 100K candidates (CPU-only, no network).
             detail_btn.click(get_candidate_detail, inputs=cid_input, outputs=detail_out)
             gr.Markdown("*Full profiles available only for the 50-candidate sample set.*")
 
-        # --- Tab 3: Live demo on sample ---
+        # --- Tab 3: Upload your own file ---
+        with gr.Tab("Upload & Rank"):
+            gr.Markdown("""
+### Upload your own candidates file
+Accepts **JSON array** (`.json`), **JSONL** (`.jsonl`), or **gzipped JSONL** (`.jsonl.gz`).
+Each record must have `candidate_id` and the standard Redrob profile fields.
+The full pipeline runs on your file: normalize → integrity gate → score → rank.
+Results are returned as the top-ranked candidates with per-candidate reasoning.
+            """)
+            with gr.Row():
+                upload_file = gr.File(
+                    label="Candidates file (.json / .jsonl / .jsonl.gz)",
+                    file_types=[".json", ".jsonl", ".gz"],
+                )
+                with gr.Column():
+                    upload_btn = gr.Button("Run pipeline", variant="primary")
+                    upload_download = gr.File(label="Download results CSV", visible=False)
+            upload_log = gr.Textbox(label="Pipeline log", lines=6, interactive=False)
+            upload_table = gr.DataFrame(label="Ranked results", interactive=False, wrap=True)
+
+            def run_and_expose(file_obj):
+                df, log = run_uploaded(file_obj)
+                csv_path = "upload_submission.csv" if Path("upload_submission.csv").exists() else None
+                visible = csv_path is not None and not df.empty
+                return df, log, gr.File(value=csv_path, visible=visible)
+
+            upload_btn.click(
+                run_and_expose,
+                inputs=upload_file,
+                outputs=[upload_table, upload_log, upload_download],
+            )
+
+        # --- Tab 4: Live demo on built-in sample ---
         with gr.Tab("Live Demo (50-candidate sample)"):
             gr.Markdown("""
 Run the full pipeline on the built-in 50-candidate sample in real time.
