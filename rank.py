@@ -127,7 +127,8 @@ _NON_ML_TITLE_RE = re.compile(
     r"scrum.master|business.analyst|product.manager|customer.support|"
     r"customer.success|operations.manager|supply.chain|recruit|"
     r"talent.acquisition|legal\b|counsel|paralegal|doctor|nurse|"
-    r"physician|teacher|tutor|professor)\b",
+    r"physician|teacher|tutor|professor|"
+    r"mechanical.engineer|civil.engineer|structural.engineer)\b",
     re.I,
 )
 
