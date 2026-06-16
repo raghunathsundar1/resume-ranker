@@ -248,42 +248,7 @@ Demonstrates the end-to-end flow: normalize → gate → score → rank → reas
             demo_table = gr.DataFrame(label="Sample ranking results", interactive=False, wrap=True)
             run_btn.click(run_sample_rank, outputs=[demo_table, demo_log])
 
-        # --- Tab 4: Architecture ---
-        with gr.Tab("Architecture"):
-            gr.Markdown("""
-## Pipeline
-
-```
-candidates.jsonl.gz  (100K records)
-        │
-  normalize.py  ──►  features.parquet  (62 columns, 54s)
-                             │
-                        rank.py  (33s)
-                        ├── B2 Integrity gate
-                        │     • honeypot signals (impossible tenure, expert-0-months, future dates)
-                        │     • JD disqualifiers (services-only, non-ML titles)
-                        ├── B3 Hybrid relevance
-                        │     • Concept scoring: keyword-set intersection, 7 concepts
-                        │     • Evidence weighting: history 1.0× / title 0.8× / skill-corroborated 1.0× / uncorroborated 0.1×
-                        │     • BM25 on top-3000 only (speed gate)
-                        ├── B4 Composite
-                        │     relevance^0.4 · concept^0.3 · fit^0.15 · behavioral^0.1 · logistics^0.05 · (1−penalty)
-                        └── B5 Reasoning
-                              deterministic per-candidate text, seeded by candidate_id
-                             │
-                      submission.csv  (top 100, header + 100 rows)
-```
-
-## Why this design
-
-| Choice | Reason |
-|---|---|
-| Keyword-set not regex | 28× faster in hot path (38K candidates) |
-| BM25 on top-3000 only | 12× BM25 speedup; top-3K by concept already captures all real candidates |
-| Multiplicative composite | One weak dimension can't be averaged away by keyword brilliance |
-| Evidence weighting | Collapses keyword stuffers; uncorroborated skills score 0.1× |
-| No embeddings/LLMs | CPU-only, no network, fully reproducible |
-            """)
+        # Architecture tab removed — details available during live interview
 
 if __name__ == "__main__":
     demo.launch(server_name="0.0.0.0", server_port=7860)
