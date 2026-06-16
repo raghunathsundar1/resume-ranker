@@ -86,11 +86,15 @@ _PRODUCT_TOKENS: frozenset[str] = frozenset({
     "E-Commerce", "E-commerce", "Technology", "Semiconductors",
     "Consumer Electronics", "Financial Services", "FinTech",
     "Ed-Tech", "HealthTech", "Health Tech",
-    "Media", "Entertainment", "Gaming", "Retail",
+    "Media", "Entertainment", "Gaming",
     "Retail Technology", "Mobile", "Telecommunications",
-    "Automotive", "Aerospace", "Manufacturing",
-    "Food & Beverages", "Consumer Goods", "Hospitality",
-    "Logistics", "Supply Chain", "Paper Products",
+    "Automotive", "Aerospace",
+    # Product-oriented tech verticals
+    "Food Delivery", "Food Technology", "FoodTech",
+    "AI", "AI/ML", "Artificial Intelligence", "Machine Learning",
+    "Cybersecurity", "AdTech", "HRTech", "LegalTech",
+    "PropTech", "InsurTech", "CleanTech", "AgriTech",
+    "Logistics Technology", "Transport Technology",
 })
 
 _RESEARCH_TOKENS: frozenset[str] = frozenset({
