@@ -24,6 +24,6 @@ build/
 *.log
 .env
 submission_metadata.yaml
-submission.csv
+# submission.csv committed for HF Spaces demo
 sample.parquet
 features.parquet

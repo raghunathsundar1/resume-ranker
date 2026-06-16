@@ -1,3 +1,15 @@
+---
+title: Redrob Ranker
+emoji: 🎯
+colorFrom: blue
+colorTo: indigo
+sdk: gradio
+sdk_version: "4.44.1"
+app_file: app.py
+pinned: false
+license: mit
+---
+
 # Redrob Ranker
 
 Ranks 100,000 ML-job candidates against a job description and outputs the top 100
