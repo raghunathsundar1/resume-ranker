@@ -1,0 +1,31 @@
+team_name: Redrob Ranker
+team_email: raghunathsundar1@gmail.com
+submission_number: 1
+as_of_date: "2026-01-31"
+
+# Reproduce:
+#   python normalize.py --input candidates.jsonl.gz --out features.parquet
+#   python rank.py --candidates features.parquet --out submission.csv
+normalize_command: "python normalize.py --input candidates.jsonl.gz --out features.parquet"
+rank_command: "python rank.py --candidates features.parquet --out submission.csv"
+
+runtime_seconds_normalize: 54
+runtime_seconds_rank: 33
+runtime_seconds_total: 87
+
+sandbox_url: "https://huggingface.co/spaces/raghu2453/redrob-ranker"
+github_url: "https://github.com/raghunathsundar1/resume-ranker"
+
+ai_tools_used: >
+  Claude (Anthropic) used for architecture consultation, code review, and
+  iteration. All scoring logic, thresholds, and design decisions were
+  authored and validated by the team against the sample data.
+
+key_design_decisions:
+  - "Multiplicative composite (not weighted sum): one weak dimension cannot be averaged away"
+  - "Frozenset keyword-set intersection replaces regex in hot path (28× speedup)"
+  - "BM25 limited to top-3000 by concept score (12× BM25 speedup; top-3K captures all real candidates)"
+  - "Evidence weighting: uncorroborated skill claims score 0.1× vs 1.0× for work-history evidence"
+  - "Honeypot gate on has_impossible_tenure, expert_zero_months_count, has_future_date"
+  - "Services-only career gate: services_years > 4 and product_years < 0.5"
+  - "Non-ML title gate: needs ≥2 strong concept hits in work history to pass"
