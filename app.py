@@ -14,12 +14,14 @@ from pathlib import Path
 import gradio as gr
 import pandas as pd
 
+APP_DIR = Path(__file__).parent
+
 # ---------------------------------------------------------------------------
 # Load pre-computed results
 # ---------------------------------------------------------------------------
 
-SUBMISSION_PATH = Path("submission.csv")
-SAMPLE_PATH = Path("data/sample_candidates.json")
+SUBMISSION_PATH = APP_DIR / "submission.csv"
+SAMPLE_PATH = APP_DIR / "data" / "sample_candidates.json"
 
 
 def _load_submission() -> pd.DataFrame:
@@ -106,29 +108,32 @@ def _run_pipeline(input_path: str, json_array: bool,
                 "--input", input_path, "--out", parquet_out]
     if json_array:
         cmd_norm.append("--json-array")
-    r1 = subprocess.run(cmd_norm, capture_output=True, text=True, timeout=timeout_norm)
+    r1 = subprocess.run(cmd_norm, capture_output=True, text=True,
+                        timeout=timeout_norm, cwd=APP_DIR)
     if r1.returncode != 0:
         return pd.DataFrame(), f"normalize.py failed:\n{r1.stderr}"
 
     r2 = subprocess.run(
         [sys.executable, "rank.py", "--candidates", parquet_out, "--out", csv_out],
-        capture_output=True, text=True, timeout=timeout_rank,
+        capture_output=True, text=True, timeout=timeout_rank, cwd=APP_DIR,
     )
     if r2.returncode != 0:
         return pd.DataFrame(), f"rank.py failed:\n{r2.stderr}"
 
-    with open(csv_out, newline="", encoding="utf-8") as f:
+    csv_full = Path(APP_DIR) / csv_out
+    with open(csv_full, newline="", encoding="utf-8") as f:
         rows = list(csv.DictReader(f))
     df = pd.DataFrame(rows)
     df["rank"] = df["rank"].astype(int)
     df["score"] = df["score"].astype(float).round(4)
-    return df.sort_values("rank").reset_index(drop=True), r2.stderr
+    log = (r1.stderr + "\n" + r2.stderr).strip()
+    return df.sort_values("rank").reset_index(drop=True), log
 
 
 def run_sample_rank() -> tuple[pd.DataFrame, str]:
     try:
         return _run_pipeline(
-            "data/sample_candidates.json", json_array=True,
+            str(APP_DIR / "data" / "sample_candidates.json"), json_array=True,
             parquet_out="sample_demo.parquet", csv_out="sample_demo_submission.csv",
             timeout_norm=60, timeout_rank=120,
         )
@@ -141,14 +146,27 @@ def run_uploaded(file_obj) -> tuple[pd.DataFrame, str]:
     if file_obj is None:
         return pd.DataFrame(), "No file uploaded."
     try:
-        path = file_obj if isinstance(file_obj, str) else file_obj.name
-        ext = path.lower()
-        if ext.endswith(".json"):
+        # Gradio 5 returns FileData(path=<tmp>, orig_name=<original filename>)
+        # Gradio 4 returned an object where .name was the tmp path (same ext as original)
+        if isinstance(file_obj, str):
+            path, orig_name = file_obj, Path(file_obj).name
+        elif hasattr(file_obj, "path"):          # Gradio 5
+            path = file_obj.path
+            orig_name = getattr(file_obj, "orig_name", None) or Path(path).name
+        else:                                    # Gradio 4 fallback
+            path = file_obj.name
+            orig_name = Path(path).name
+
+        orig_lower = (orig_name or "").lower()
+        if orig_lower.endswith(".json"):
             json_array = True
-        elif ext.endswith(".jsonl") or ext.endswith(".jsonl.gz") or ext.endswith(".gz"):
+        elif orig_lower.endswith(".jsonl") or orig_lower.endswith(".jsonl.gz") or orig_lower.endswith(".gz"):
             json_array = False
         else:
-            return pd.DataFrame(), f"Unsupported extension: {Path(path).suffix}. Upload .json (array), .jsonl, or .jsonl.gz"
+            return pd.DataFrame(), (
+                f"Unsupported extension '{Path(orig_name).suffix}'. "
+                "Upload .json (JSON array), .jsonl, or .jsonl.gz"
+            )
         return _run_pipeline(
             path, json_array=json_array,
             parquet_out="upload_demo.parquet", csv_out="upload_submission.csv",
@@ -227,9 +245,10 @@ Results are returned as the top-ranked candidates with per-candidate reasoning.
 
             def run_and_expose(file_obj):
                 df, log = run_uploaded(file_obj)
-                csv_path = "upload_submission.csv" if Path("upload_submission.csv").exists() else None
-                visible = csv_path is not None and not df.empty
-                return df, log, gr.File(value=csv_path, visible=visible)
+                csv_path = APP_DIR / "upload_submission.csv"
+                visible = csv_path.exists() and not df.empty
+                return df, log, gr.File(value=str(csv_path) if visible else None,
+                                        visible=visible)
 
             upload_btn.click(
                 run_and_expose,
